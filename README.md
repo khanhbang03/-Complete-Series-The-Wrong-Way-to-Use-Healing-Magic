@@ -3,3 +3,4 @@
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/1ba8f8bb-c586-4d81-88a0-773ac07459f7" />
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/4dbecfb7-ae8b-4cf5-9e91-7e1e73d8f49e" />
 <img width="3840" height="2160" alt="Screenshot 2025-10-21 115841" src="https://github.com/user-attachments/assets/f2f50d82-ed4a-4dbe-9e8f-c9323df9d100" />
+<img width="3840" height="2160" alt="Screenshot 2025-10-21 122746" src="https://github.com/user-attachments/assets/21326108-d62f-410b-867d-5a307bfebece" />
