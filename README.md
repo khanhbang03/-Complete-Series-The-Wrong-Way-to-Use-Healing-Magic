@@ -8,3 +8,4 @@
 <img width="3840" height="2160" alt="Screenshot 2025-10-21 144647" src="https://github.com/user-attachments/assets/17c537af-c83c-4d56-82f1-93c7a0b43fa8" />
 <img width="3840" height="2160" alt="Screenshot 2025-10-21 145556" src="https://github.com/user-attachments/assets/8614a5d9-a159-48df-b367-739a9e407e3b" />
 <img width="3840" height="2160" alt="Screenshot 2025-10-21 150259" src="https://github.com/user-attachments/assets/3be9f7f4-6907-4f6a-b70e-65ccc08704a3" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/5365afef-a1e3-491d-ba51-eb4cfd006295" />
