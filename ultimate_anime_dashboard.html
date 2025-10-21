@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Ultimate Anime Dashboard — Team, Timeline, Village & Inventory</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#061126; --panel:#071827; --muted:#b8d9ef;
+      --card-grad: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.03));
+      --accent-1:#7ef9a6; --accent-2:#ff9ac2; --accent-3:#ffd36a; --accent-4:#9bd0ff;
+      --accent-5:#b3a0ff; --accent-6:#8cffb1; --accent-7:#ffc6a6; --accent-8:#c8fffb;
+      --accent-9:#ffb3f5; --accent-10:#ffd6b8; --accent-11:#8fd1ff; --accent-12:#a7ffcf;
+      --wood:#7a4f2b; --parchment:#fbf1df;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background: radial-gradient(900px 420px at 8% 10%, rgba(140,180,255,0.03), transparent 10%), linear-gradient(180deg,#021126 6%, #061126 84%);
+      color:#eaf6ff; display:flex;align-items:center;justify-content:center;padding:18px;
+    }
+    .app{width:1300px;max-width:100%;border-radius:14px;padding:14px;background:var(--panel);border:1px solid rgba(255,255,255,0.03);box-shadow:0 20px 60px rgba(2,6,23,0.7);position:relative;overflow:hidden}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 6px}
+    h1{margin:0;font-size:20px} p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;gap:10px;align-items:center}
+    button{padding:8px 12px;border-radius:10px;border:none;background:linear-gradient(90deg,#7bf3c6,#8ac8ff);color:#042a1f;font-weight:700;cursor:pointer}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+
+    .timeline{display:flex;align-items:center;gap:12px;padding:12px 6px;flex-wrap:wrap}
+    .weeks{display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:680px}
+    .week{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;user-select:none;font-weight:700;color:var(--muted);transition:transform .15s ease, background .18s ease;font-size:13px}
+    .week.active{background:linear-gradient(90deg,var(--accent-11),var(--accent-12));color:#042033;transform:translateY(-6px) scale(1.02)}
+    .timeline-info{margin-left:12px;color:var(--muted);font-size:13px;min-width:280px}
+
+    .main{display:flex;gap:14px;padding:12px 6px}
+    .grid-wrap{flex:1;overflow:auto;max-height:680px;padding-right:6px}
+    .grid{display:grid;grid-template-columns: repeat(5, 1fr);gap:12px;transition:filter .5s ease, opacity .4s ease;padding-bottom:8px}
+    .card{background:var(--card-grad);border-radius:12px;padding:12px;min-height:180px;position:relative;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;gap:8px;overflow:visible}
+    .card:hover{transform:translateY(-8px);box-shadow:0 18px 40px rgba(6,12,40,0.6)}
+    .portrait{width:96px;height:106px;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;overflow:visible}
+    svg.portrait{width:96px;height:106px;display:block}
+    .name{font-weight:800;color:#fff;font-size:14px;text-align:center}
+    .title{font-size:12px;color:var(--muted);text-align:center}
+    .power-row{width:100%;display:flex;gap:8px;align-items:center;padding:0 6px;margin-top:6px}
+    .power-label{font-size:12px;color:var(--muted);min-width:70px}
+    .power-bar{flex:1;height:12px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;position:relative}
+    .power-fill{position:absolute;left:0;top:0;bottom:0;width:0%;border-radius:8px;transition:width 600ms linear,box-shadow 200ms linear}
+    .power-val{font-size:12px;color:var(--muted);min-width:44px;text-align:right}
+    .glow{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:0.9;filter:blur(6px)}
+    .main-badge{position:absolute;top:8px;right:8px;font-size:11px;padding:6px 8px;border-radius:10px;color:#042023;font-weight:800;background:linear-gradient(90deg,var(--accent-1),var(--accent-4))}
+
+    .tooltip{position:absolute;background:#041022;color:#dff6ff;padding:8px 10px;border-radius:8px;font-size:13px;box-shadow:0 8px 24px rgba(2,6,23,0.6);z-index:60;display:none;max-width:260px}
+
+    /* village overlay */
+    .village{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#e9f7ff 0%, #cfeef7 100%);opacity:0;pointer-events:none;transition:opacity .45s ease;flex-direction:column;padding:28px}
+    .village.visible{opacity:1;pointer-events:auto}
+    .village-card{width:95%;max-width:1100px;border-radius:12px;padding:18px;background:linear-gradient(180deg,#f6fbff,#eaf7ff);box-shadow:0 20px 60px rgba(2,6,23,0.12);color:#042a1f;display:flex;gap:12px;align-items:center;flex-direction:column}
+    .village-art{width:100%;height:320px;border-radius:10px;background-image:linear-gradient(180deg,#dbefff,#e9f7ff);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;padding:18px}
+
+    /* inventory popup - cozy wood & parchment */
+    .inventory{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:660px;max-width:94%;background:linear-gradient(180deg,#f9f3e3,#f5ecd4);border-radius:12px;padding:16px;box-shadow:0 30px 80px rgba(2,6,23,0.25);display:none;z-index:80;border:6px solid #5b3a26}
+    .inventory.visible{display:block}
+    .inv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .inv-items{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center;padding:12px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="480" height="200"><rect fill="%23f0e6d0" width="480" height="200"/><path d="M0 200 C80 150 160 200 240 160 C320 120 400 200 480 160" fill="none" stroke="%23e6d9b4" stroke-width="8" stroke-opacity="0.25"/></svg>') repeat;border-radius:8px}
+    .inv-item{width:140px;height:140px;background:linear-gradient(180deg,#fff8ea,#f0e6d0);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;position:relative;border:1px solid rgba(0,0,0,0.06);cursor:default}
+    .inv-item .icon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px}
+    .inv-item .label{font-weight:700;color:#10303b;font-size:13px;text-align:center}
+    .inv-item .desc{font-size:12px;color:#0e3b45;opacity:0.9;text-align:center;margin-top:6px}
+
+    .save-load{display:flex;gap:8px;align-items:center}
+
+    footer{margin-top:10px;color:var(--muted);font-size:13px;text-align:center}
+
+    @media (max-width:1200px){ .grid{grid-template-columns:repeat(3,1fr)} }
+    @media (max-width:760px){ .grid{grid-template-columns:repeat(2,1fr)} .village-art{height:220px} .inventory{width:90%} }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <div>
+        <h1>Ultimate Anime Dashboard</h1>
+        <p class="lead">3×5 roster, 20-week interactive timeline, village, cozy inventory, and save/load progress.</p>
+      </div>
+      <div class="controls">
+        <div class="timeline" style="align-items:center">
+          <div class="weeks" id="weeksContainer" role="tablist" aria-label="Weeks"></div>
+          <div class="timeline-info" id="timelineInfo">Select a week</div>
+        </div>
+        <button id="visitVillage" class="secondary">🏡 Visit the Village</button>
+        <button id="openBag">🎒 Open Bag</button>
+        <div class="save-load">
+          <button id="saveBtn" class="">💾 Save Progress</button>
+          <button id="loadBtn" class="secondary">🔁 Load</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="grid-wrap">
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+
+    <footer>Auto-advances timeline every 5s; click weeks to jump. Save remembers current week locally.</footer>
+
+    <div id="tooltip" class="tooltip" role="tooltip"></div>
+
+    <!-- village overlay -->
+    <div id="village" class="village" aria-hidden="true">
+      <div class="village-card">
+        <div style="font-weight:900;font-size:18px;color:#01324a">Peaceful Village — A Short Visit</div>
+        <div class="village-art" id="villageArt" aria-hidden="true">
+          <svg width="100%" height="100%" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs><linearGradient id="vh1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#dbefff"/></linearGradient></defs>
+            <rect x="0" y="0" width="1200" height="300" fill="url(#vh1)"></rect>
+            <g transform="translate(40,140)">
+              <ellipse cx="120" cy="120" rx="220" ry="60" fill="#d0f0e8" opacity="0.9"></ellipse>
+              <ellipse cx="420" cy="120" rx="260" ry="70" fill="#d7eaff" opacity="0.95"></ellipse>
+              <ellipse cx="820" cy="120" rx="240" ry="68" fill="#e5f3ff" opacity="0.95"></ellipse>
+            </g>
+          </svg>
+        </div>
+        <div style="max-width:880px;text-align:center;color:#0e3b45;margin-top:10px">
+          The village is calm. Team members can rest, trade stories, and prepare for the next week’s challenges.
+        </div>
+        <div class="village-footer" style="margin-top:8px">
+          <button id="returnRoster">↩️ Return to Roster</button>
+          <button id="rest" class="secondary">Take a Short Rest</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- inventory -->
+    <div id="inventory" class="inventory" aria-hidden="true">
+      <div class="inv-header">
+        <div style="font-weight:900;color:#5b3826">Pack — Wooden Table</div>
+        <div style="display:flex;gap:8px">
+          <button id="closeInv" class="secondary">Close</button>
+        </div>
+      </div>
+      <div class="inv-items" id="invItems">
+        <div class="inv-item" data-item="water" role="button" tabindex="0">
+          <div class="icon" style="background:linear-gradient(90deg,#dff7ff,#bfefff)">💧</div>
+          <div class="label">Water Bottle</div>
+          <div class="desc">Restores small stamina.</div>
+        </div>
+        <div class="inv-item" data-item="potion" role="button" tabindex="0">
+          <div class="icon" style="background:linear-gradient(90deg,#fff2d9,#ffd6a8)">🧴</div>
+          <div class="label">Healing Potion</div>
+          <div class="desc">Mends wounds quickly.</div>
+        </div>
+        <div class="inv-item" data-item="bandage" role="button" tabindex="0">
+          <div class="icon" style="background:linear-gradient(90deg,#f7f2ff,#e9e0ff)">🩹</div>
+          <div class="label">Magic Bandage</div>
+          <div class="desc">Soothes and protects.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(() => {
+  // character list (15)
+  const members = [
+    {id:'pham', name:'Phạm Hoàng Hải', title:'Healer', color:'var(--accent-1)'},
+    {id:'bui_huyen_mai', name:'Bùi Huyền Mai', title:'Support', color:'var(--accent-2)'},
+    {id:'duc_viet_bui', name:'Đức Việt Bùi', title:'Buffer', color:'var(--accent-3)'},
+    {id:'trinh_ngoc_hung', name:'Trịnh Ngọc Hưng', title:'Caster', color:'var(--accent-4)'},
+    {id:'tran_duc_manh', name:'Trần Đức Mạnh', title:'Guardian', color:'var(--accent-5)'},
+    {id:'nguyen_khanh_bang', name:'Nguyễn Khánh Bằng', title:'Analyst', color:'var(--accent-6)'},
+    {id:'aryan_panicker', name:'Aryan Panicker', title:'Swift', color:'var(--accent-7)'},
+    {id:'ta_thu_hau', name:'Tạ Thu Hậu', title:'Healer', color:'var(--accent-8)'},
+    {id:'aittaty', name:'Aittaty Kyzybek', title:'Spirit', color:'var(--accent-9)'},
+    {id:'ali_akram', name:'Ali Akram', title:'Protector', color:'var(--accent-10)'},
+    {id:'kazuki', name:'Kazuki', title:'Traveler', color:'var(--accent-11)'},
+    {id:'inukami', name:'Inukami-senpai', title:'Master Healer', color:'var(--accent-12)'},
+    {id:'anoush', name:'Anoush KP', title:'Scout', color:'var(--accent-3)'},
+    {id:'nguyen_hoang_anh', name:'Nguyen Hoang Anh', title:'Warden', color:'var(--accent-5)'},
+    {id:'usato', name:'Usato (Main)', title:'Main Healer', color:'var(--accent-6)', main:true}
+  ];
+
+  const tooltips = {};
+  members.forEach(m=> {
+    tooltips[m.id] = `${m.name} — ${m.title}. A short anime-style note about their personality.`;
+  });
+  // some custom flavor
+  tooltips['usato'] = 'Usato — the main healer who leads with heart and precise technique.';
+  tooltips['kazuki'] = 'Kazuki — a quiet traveler with rare remedies.';
+  tooltips['inukami'] = 'Inukami-senpai — stern master healer, legendary techniques.';
+
+  const grid = document.getElementById('grid');
+  const tooltip = document.getElementById('tooltip');
+  const weeksContainer = document.getElementById('weeksContainer');
+  const timelineInfo = document.getElementById('timelineInfo');
+  const village = document.getElementById('village');
+  const inventory = document.getElementById('inventory');
+  const invItems = document.getElementById('invItems');
+
+  // create 20 weeks
+  const weeks = [];
+  for(let w=1; w<=20; w++){
+    const el = document.createElement('div');
+    el.className = 'week';
+    el.setAttribute('role','tab');
+    el.setAttribute('tabindex','0');
+    el.textContent = 'Week ' + w;
+    el.dataset.week = w;
+    weeksContainer.appendChild(el);
+    weeks.push(el);
+  }
+
+  // render members in 3x5 (grid is 5 columns, 3 rows)
+  members.forEach(m=>{
+    const card = document.createElement('div'); card.className = 'card'; card.id = 'card_' + m.id;
+    const glow = document.createElement('div'); glow.className = 'glow'; glow.style.background = `radial-gradient(circle at 20% 20%, ${m.color}, rgba(255,255,255,0.02) 35%, transparent 70%)`;
+    card.appendChild(glow);
+
+    const portrait = document.createElement('div'); portrait.className='portrait';
+    portrait.innerHTML = `
+      <svg class="portrait" viewBox="0 0 96 106" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="${m.id}_skin" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffdcb8"/><stop offset="1" stop-color="#ffcaa0"/></linearGradient>
+        </defs>
+        <rect x="0" y="0" width="96" height="106" rx="10" fill="rgba(0,0,0,0.12)"/>
+        <g transform="translate(10,6)">
+          <ellipse cx="34" cy="28" rx="22" ry="20" fill="url(#${m.id}_skin)"/>
+          <path d="M8 18 q24 -26 48 0 q-6 -6 -40 -6 q-6 2 -8 6z" fill="#1f2937"/>
+          <circle cx="26" cy="28" r="3" fill="#fff"/><circle cx="42" cy="28" r="3" fill="#fff"/>
+          <rect x="8" y="52" rx="6" width="56" height="42" fill="#172033"/>
+          <path d="M-8 68 q36 22 76 0" fill="${m.color}" opacity="0.08"/>
+        </g>
+      </svg>`;
+    card.appendChild(portrait);
+
+    const name = document.createElement('div'); name.className='name'; name.textContent = m.name;
+    const title = document.createElement('div'); title.className='title'; title.textContent = m.title;
+    card.appendChild(name); card.appendChild(title);
+
+    const pro = document.createElement('div'); pro.className='power-row';
+    const pl = document.createElement('div'); pl.className='power-label'; pl.textContent='Healing';
+    const bar = document.createElement('div'); bar.className='power-bar';
+    const fill = document.createElement('div'); fill.className='power-fill';
+    fill.style.background = `linear-gradient(90deg, ${m.color}, rgba(255,255,255,0.12))`;
+    fill.style.boxShadow = `0 6px 18px ${m.color}55`;
+    bar.appendChild(fill);
+    const val = document.createElement('div'); val.className='power-val'; val.textContent='0%';
+    pro.appendChild(pl); pro.appendChild(bar); pro.appendChild(val);
+    card.appendChild(pro);
+
+    if(m.main){
+      const badge = document.createElement('div'); badge.className='main-badge'; badge.textContent='Main Healer'; card.appendChild(badge);
+      // stronger aura animation
+      glow.style.filter = 'blur(10px)';
+    }
+
+    // tooltip events
+    card.addEventListener('mouseenter', (e)=> showTooltip(e, tooltips[m.id]));
+    card.addEventListener('mouseleave', hideTooltip);
+    card.addEventListener('focus', (e)=> showTooltip(e, tooltips[m.id]));
+    card.addEventListener('blur', hideTooltip);
+
+    grid.appendChild(card);
+  });
+
+  // tooltip helpers
+  function showTooltip(e, text){
+    tooltip.style.display='block'; tooltip.textContent = text;
+    const rect = (e.currentTarget || e.target).getBoundingClientRect();
+    const appRect = document.getElementById('app').getBoundingClientRect();
+    let left = rect.left - appRect.left + rect.width/2 - 120;
+    left = Math.max(8, Math.min(left, appRect.width - 248));
+    let top = rect.top - appRect.top - 12 - 64;
+    if(top < 8) top = rect.top - appRect.top + rect.height + 6;
+    tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
+  }
+  function hideTooltip(){ tooltip.style.display='none'; }
+
+  // power engine
+  const fills = Array.from(document.querySelectorAll('.power-fill'));
+  const vals = Array.from(document.querySelectorAll('.power-val'));
+  // base values
+  fills.forEach((f,i)=>{
+    const b = 45 + Math.floor(Math.random()*40); f.dataset.base = b; f.style.width = b + '%'; if(vals[i]) vals[i].textContent = b + '%';
+  });
+
+  const oscillators = [];
+  fills.forEach((f, idx)=>{
+    const base = Number(f.dataset.base) || 60;
+    const amp = 6 + Math.random()*18;
+    const speed = 900 + Math.random()*2200;
+    const phase = Math.random()*Math.PI*2;
+    oscillators.push({f, idx, base, amp, speed, phase});
+  });
+
+  // week baselines 1..20
+  const weekBaselines = {}; for(let i=1;i<=20;i++){ weekBaselines[i] = 45 + Math.floor((i-1)*2.2); }
+
+  let currentWeek = 1;
+  function animate(t){
+    oscillators.forEach(o=>{
+      const now = t || performance.now();
+      const theta = (now / o.speed) * Math.PI * 2 + o.phase;
+      const fluct = Math.sin(theta) * o.amp + (Math.random()-0.5)*1.6;
+      const weekShift = (weekBaselines[currentWeek] - 60) * 0.2;
+      const val = Math.max(6, Math.min(99, Math.round(o.base + fluct + weekShift)));
+      o.f.style.width = val + '%';
+      const displayVal = document.querySelectorAll('.power-val')[o.idx];
+      if(displayVal) displayVal.textContent = val + '%';
+    });
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+
+  // week click handlers
+  function weekStory(w){ const s = [
+    'Arrival and introductions.','Training intensifies.','First skirmishes.','Supplies and rest.','Small victories.',
+    'Strategy and bonding.','Deep journey.','Unexpected ambush.','Recovery in village.','A mysterious ally appears.',
+    'Preparation for mid-boss.','Mid-boss confrontation.','Regroup and heal.','New techniques learned.','Long march.',
+    'The great trial begins.','Tactical retreats.','Final preparations.','Climax approaches.','Grand finale']
+    ; return s[w-1] || 'Story continues...'; }
+
+  const weekEls = Array.from(document.querySelectorAll('.week'));
+  function setActiveWeek(w, animated=true){
+    currentWeek = w;
+    weekEls.forEach(we=> we.classList.toggle('active', Number(we.dataset.week)===w));
+    timelineInfo.textContent = `Week ${w} — ${weekStory(w)}`;
+    // nudge cards and update base slightly
+    document.querySelectorAll('.card').forEach((c,i)=>{
+      c.animate([{transform:'translateY(0) scale(1)'},{transform:'translateY(-10px) scale(1.02)'},{transform:'translateY(0) scale(1)'}],{duration:450 + i*8,iterations:1});
+      const f = c.querySelector('.power-fill');
+      if(f){
+        const prev = Number(f.dataset.base) || 60;
+        const delta = (w-10) * 0.9 - (Math.random()*6);
+        const nb = Math.max(30, Math.min(95, Math.round(prev + delta)));
+        f.dataset.base = nb;
+      }
+    });
+  }
+  // attach handlers
+  weekEls.forEach(el=> el.addEventListener('click', ()=> setActiveWeek(Number(el.dataset.week))));
+  weekEls.forEach(el=> el.addEventListener('keyup', (e)=>{ if(e.key==='Enter' || e.key===' ') setActiveWeek(Number(el.dataset.week)); }));
+  // initialize weeks display and active
+  setActiveWeek(1);
+
+  // auto-advance every 5s
+  let autoTimer = setInterval(()=>{ let nw = currentWeek+1; if(nw>20) nw=1; setActiveWeek(nw); }, 5000);
+
+  // visit village fade logic
+  const visitBtn = document.getElementById('visitVillage');
+  const returnBtn = document.getElementById('returnRoster');
+  visitBtn.addEventListener('click', ()=>{
+    document.querySelector('.grid').style.opacity='0.08'; document.querySelector('.grid').style.filter='blur(6px)';
+    setTimeout(()=>{ village.classList.add('visible'); village.setAttribute('aria-hidden','false'); timelineInfo.textContent='Visiting the village...'; playVillageAmbience(); }, 240);
+  });
+  returnBtn.addEventListener('click', ()=>{
+    village.classList.remove('visible'); village.setAttribute('aria-hidden','true'); document.querySelector('.grid').style.opacity='1'; document.querySelector('.grid').style.filter='none'; timelineInfo.textContent=`Week ${currentWeek} — ${weekStory(currentWeek)}`; stopVillageAmbience();
+  });
+
+  // inventory popup
+  const openBag = document.getElementById('openBag'); const closeInv = document.getElementById('closeInv');
+  openBag.addEventListener('click', ()=>{ inventory.classList.add('visible'); inventory.setAttribute('aria-hidden','false'); document.querySelector('.grid').style.filter='blur(4px)'; });
+  closeInv.addEventListener('click', ()=>{ inventory.classList.remove('visible'); inventory.setAttribute('aria-hidden','true'); document.querySelector('.grid').style.filter='none'; });
+  // inventory item hover tooltips and subtle animations
+  Array.from(invItems.querySelectorAll('.inv-item')).forEach(it=>{
+    it.addEventListener('mouseenter', ()=>{ it.animate([{transform:'translateY(0) scale(1)'},{transform:'translateY(-6px) scale(1.02)'},{transform:'translateY(0) scale(1)'}],{duration:420,iterations:1}); });
+    it.addEventListener('focus', ()=>{ it.animate([{transform:'translateY(0) scale(1)'},{transform:'translateY(-6px) scale(1.02)'},{transform:'translateY(0) scale(1)'}],{duration:420,iterations:1}); });
+    it.addEventListener('click', ()=>{
+      // using an item gives a small buff to random character bases
+      const item = it.dataset.item;
+      timelineInfo.textContent = `Used ${item} — some team members feel refreshed.`;
+      const targets = []; const cards = Array.from(document.querySelectorAll('.card'));
+      for(let i=0;i<3;i++){ targets.push(cards[Math.floor(Math.random()*cards.length)]); }
+      targets.forEach(t=>{
+        const f = t.querySelector('.power-fill'); if(f){ const prev=Number(f.dataset.base)||60; f.dataset.base = Math.min(98, prev + (item==='water'?4: item==='potion'?10:7)); }
+      });
+      setTimeout(()=> timelineInfo.textContent = `Week ${currentWeek} — ${weekStory(currentWeek)}`, 2200);
+    });
+  });
+
+  // save/load progress using localStorage
+  const saveBtn = document.getElementById('saveBtn'); const loadBtn = document.getElementById('loadBtn');
+  saveBtn.addEventListener('click', ()=>{
+    const state = { week: currentWeek, bases: Array.from(document.querySelectorAll('.power-fill')).map(f=> Number(f.dataset.base)||60) };
+    localStorage.setItem('anime_dashboard_save', JSON.stringify(state));
+    timelineInfo.textContent = 'Progress saved locally.';
+    setTimeout(()=> timelineInfo.textContent = `Week ${currentWeek} — ${weekStory(currentWeek)}`, 1200);
+  });
+  loadBtn.addEventListener('click', ()=>{
+    const raw = localStorage.getItem('anime_dashboard_save');
+    if(!raw){ timelineInfo.textContent = 'No saved progress found.'; setTimeout(()=> timelineInfo.textContent = `Week ${currentWeek} — ${weekStory(currentWeek)}`, 1200); return; }
+    try{
+      const state = JSON.parse(raw);
+      if(state.week) setActiveWeek(state.week);
+      if(state.bases && state.bases.length >= 1){
+        const fills = document.querySelectorAll('.power-fill');
+        state.bases.forEach((b,i)=>{ if(fills[i]){ fills[i].dataset.base = b; } });
+      }
+      timelineInfo.textContent = 'Progress loaded.';
+      setTimeout(()=> timelineInfo.textContent = `Week ${currentWeek} — ${weekStory(currentWeek)}`, 1400);
+    }catch(e){ timelineInfo.textContent = 'Failed to load save.'; }
+  });
+
+  // village ambient music via WebAudio - soft harp + chime loop
+  let audioCtx = null; let villageOsc = []; let villageGain=null; let ambiencePlaying=false;
+  function playVillageAmbience(){
+    try{
+      if(ambiencePlaying) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      villageGain = audioCtx.createGain(); villageGain.gain.value = 0.001; villageGain.connect(audioCtx.destination);
+      // gentle bell/chime sequences
+      function playBell(time, freq, dur){
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.value = 0.001;
+        o.connect(g); g.connect(villageGain);
+        o.start(time); g.gain.linearRampToValueAtTime(0.08, time+0.02); g.gain.exponentialRampToValueAtTime(0.0001, time+dur/1000);
+        o.stop(time+dur/1000+0.02);
+      }
+      const now = audioCtx.currentTime + 0.02;
+      // sequence of overlapping soft harp-like plucks (synth)
+      for(let i=0;i<6;i++){
+        const t = now + i*0.6;
+        playBell(t, 520 + Math.random()*120, 700 + Math.random()*200);
+        playBell(t+0.2, 680 + Math.random()*120, 600 + Math.random()*200);
+      }
+      // gentle continuous subtle background via low oscillator
+      const base = audioCtx.createOscillator(); const bgGain = audioCtx.createGain();
+      base.type = 'sine'; base.frequency.value = 110;
+      bgGain.gain.value = 0.005;
+      base.connect(bgGain); bgGain.connect(villageGain); base.start();
+      villageOsc.push(base, bgGain);
+      // ramp up gain
+      villageGain.gain.linearRampToValueAtTime(0.045, audioCtx.currentTime + 0.1);
+      ambiencePlaying = true;
+    }catch(e){ console.log('audio err', e); }
+  }
+  function stopVillageAmbience(){
+    try{
+      if(!ambiencePlaying) return;
+      if(villageGain) villageGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+      setTimeout(()=>{
+        villageOsc.forEach(n=>{ try{ if(n.stop) n.stop(); if(n.disconnect) n.disconnect(); }catch(e){} });
+        villageOsc = [];
+        if(audioCtx && audioCtx.close) audioCtx.close();
+        audioCtx = null; ambiencePlaying=false;
+      }, 800);
+    }catch(e){ console.log(e); }
+  }
+
+  // small ambient visuals for village
+  const villageArt = document.getElementById('villageArt');
+  function spawnVillageGlow(){ const g = document.createElement('div'); g.style.position='absolute'; g.style.width='80px'; g.style.height='80px'; g.style.borderRadius='50%'; g.style.left = (12 + Math.random()*76) + '%'; g.style.top = (8 + Math.random()*60) + '%'; g.style.background = 'radial-gradient(circle, rgba(255,255,255,0.8), rgba(167,223,255,0.6) 30%, transparent 60%)'; g.style.filter='blur(12px)'; g.style.opacity='0.9'; villageArt.appendChild(g); setTimeout(()=>{ g.animate([{opacity:0.9, transform:'scale(1)'},{opacity:0.1, transform:'scale(1.6)'}],{duration:2400+Math.random()*1200}); setTimeout(()=>g.remove(),2600); },40); }
+  setInterval(spawnVillageGlow, 1100);
+
+  // initial ready text
+  timelineInfo.textContent = 'Week 1 — The journey begins. (Auto-advance every 5s)';
+})(); 
+</script>
+</body>
+</html>
