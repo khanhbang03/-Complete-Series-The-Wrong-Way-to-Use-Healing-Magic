@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Battle — Darkness of Llinger</title>
+<style>
+  :root{
+    --bg:#06040b;
+    --panel:#0f1116;
+    --accent:#8fd3ff;
+    --danger:#ff6b6b;
+    --good:#9af78a;
+    --muted:#9aa4b2;
+    --glass: rgba(255,255,255,0.04);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{
+    background: radial-gradient(ellipse at 20% 10%, rgba(90,50,120,0.18) 0%, transparent 15%),
+                radial-gradient(ellipse at 90% 90%, rgba(10,40,60,0.25) 0%, transparent 15%),
+                linear-gradient(#02020a, #06040b 40%, #03040a 100%);
+    color:#e8eef6;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:30px;
+    box-sizing:border-box;
+  }
+
+  .scene {
+    width:1100px;
+    max-width:calc(100vw - 40px);
+    min-height:640px;
+    border-radius:14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    overflow:hidden;
+    position:relative;
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:18px;
+    padding:18px;
+  }
+
+  /* Left: battlefield */
+  .field {
+    position:relative;
+    border-radius:10px;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.55)),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23020105" width="100" height="100"/></svg>');
+    overflow:hidden;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    align-items:stretch;
+  }
+
+  /* forest mist layers */
+  .mist {
+    pointer-events:none;
+    position:absolute; left:0; right:0; top:0; bottom:0;
+    mix-blend-mode:screen;
+  }
+  .mist::before, .mist::after{
+    content:"";
+    position:absolute; left:-20%; right:-20%; top:-20%; bottom:-20%;
+    background: radial-gradient(ellipse at 20% 30%, rgba(120,80,160,0.06), transparent 15%),
+                radial-gradient(ellipse at 80% 70%, rgba(20,40,90,0.06), transparent 20%);
+    transform:rotate(0deg);
+    animation: drift 18s linear infinite;
+    opacity:0.9;
+  }
+  .mist::after{ animation-duration:28s; opacity:0.7; filter:blur(26px) saturate(1.2);}
+
+  @keyframes drift { from{ transform:translateX(0) } to { transform:translateX(-6%) } }
+
+  /* ground */
+  .ground {
+    height:200px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.6));
+    border-radius:12px;
+    position:relative;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-around;
+    padding-bottom:22px;
+  }
+
+  /* Character card bubble */
+  .char {
+    width:170px;
+    height:260px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    transform-origin:center bottom;
+    transition:transform .25s ease;
+    filter:drop-shadow(0 10px 30px rgba(0,0,0,0.6));
+  }
+
+  .portrait {
+    width:120px;height:120px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);
+    position:relative; overflow:hidden;
+  }
+  .portrait .avatar {
+    font-weight:700;
+    font-size:28px;
+    letter-spacing:0.6px;
+    color: #fff;
+  }
+  .glow {
+    position:absolute; inset:0; pointer-events:none;
+    mix-blend-mode:screen;
+  }
+
+  .name { margin-top:10px; font-weight:600; font-size:15px; text-align:center; }
+  .role { font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .hpbar {
+    width:86%;
+    height:12px;
+    border-radius:10px;
+    background:rgba(255,255,255,0.04);
+    margin-top:12px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.02);
+  }
+  .hp {
+    height:100%;
+    width:100%;
+    background:linear-gradient(90deg,var(--good), #4ee1ff 60%);
+    transform-origin:left;
+    transition:width 400ms linear;
+  }
+  .hp-text { font-size:12px; margin-top:6px; color:var(--muted); }
+
+  /* status/skill badges */
+  .badge { font-size:11px; padding:6px 8px; border-radius:999px; background:var(--glass); border:1px solid rgba(255,255,255,0.03); margin-top:8px; color:var(--muted); }
+
+  /* Right panel: controls + log */
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:10px;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .controls { display:flex; gap:10px; align-items:center; }
+  button {
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.04);
+    color:inherit; padding:8px 12px; border-radius:8px; cursor:pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  }
+  button.primary { background: linear-gradient(180deg,#2c69ff,#2260ff); color:white; border:none; }
+  .speed { display:flex; gap:8px; align-items:center; margin-left:6px; color:var(--muted); font-size:13px; }
+  .log { flex:1; overflow:auto; padding:8px; background:linear-gradient(180deg,rgba(0,0,0,0.18),rgba(0,0,0,0.3)); border-radius:8px; font-size:13px; color:#e5eefc; }
+  .log p { margin:6px 0; line-height:1.3; }
+  .status-row { display:flex; gap:6px; align-items:center; justify-content:space-between; }
+
+  .footer {
+    display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;
+  }
+
+  /* animations */
+  .attack-anim {
+    position:absolute;
+    pointer-events:none;
+    z-index:20;
+  }
+
+  .hit-spark {
+    position:absolute; width:8px; height:8px; border-radius:50%;
+    box-shadow: 0 0 16px 4px rgba(255,255,255,0.9);
+    transform:scale(0);
+    animation: hitpop 360ms ease forwards;
+  }
+  @keyframes hitpop { 0%{ transform:scale(0); opacity:1 } 60%{ transform:scale(1.4); } 100%{ transform:scale(1); opacity:0 } }
+
+  .big-skill {
+    position:absolute; border-radius:10px; pointer-events:none;
+  }
+
+  /* winner overlay */
+  .overlay {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:60;
+    background: linear-gradient(180deg, rgba(0,0,0,0.0), rgba(5,2,10,0.65));
+    font-size:22px; font-weight:700; color: #fff; text-align:center; padding:30px;
+    pointer-events:none;
+  }
+
+  /* responsive */
+  @media (max-width:980px){ .scene{ grid-template-columns:1fr; } .panel{ order:2 } .field{ order:1 } }
+</style>
+</head>
+<body>
+<div class="scene" id="scene">
+  <div class="field" id="field">
+    <div class="mist"></div>
+
+    <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="flex:1">
+          <h2 style="margin: 69 69 69 69;font-size:20px">Battle — Darkness of Llinger</h2>
+          <p style="margin: 69 69 69 69;color:var(--muted);font-size:13px">Under the blood moon, four champions clash. Watch the spells glow and health ebb away.</p>
+          <img src="./battle_darkness_of_llinger.png" width="700px" height="400px"/>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Turn-based • Animated</div>
+      </div>
+    </div>
+
+    <div class="ground" id="ground">
+      <!-- Character slots (populated by JS) -->
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="controls">
+      <button id="startBtn" class="primary">Start Battle</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+      <div class="speed">
+        Speed:
+        <input type="range" id="speedRange" min="0.25" max="2.5" step="0.25" value="1" />
+        <span id="speedVal">1x</span>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <div style="display:flex;flex-direction:column;">
+        <div style="font-size:13px;color:var(--muted)">Round</div>
+        <div id="roundDisplay" style="font-weight:700;font-size:18px">0</div>
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        <div style="font-size:13px;color:var(--muted)">Alive</div>
+        <div id="aliveDisplay" style="font-weight:700;font-size:18px">4</div>
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        <div style="font-size:13px;color:var(--muted)">Log</div>
+        <div id="logCount" style="font-weight:700;font-size:18px">0</div>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div class="footer">
+      <div style="font-size:12px;color:var(--muted)">Tip: Press Start. Pause to freeze. Reset anytime.</div>
+      <div style="font-size:12px;color:var(--muted)">Made in-browser • No assets required</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Battle engine + animation for Darkness of Llinger
+   - Self-contained
+   - Characters auto-animate toward target and perform action
+*/
+
+/* Character definitions */
+const CHARS_DEF = [
+  {
+    id: 'an',
+    name: 'Nguyen Van An',
+    role: 'Forest Knight',
+    maxHP: 120,
+    atkMin: 15, atkMax: 25,
+    skill: {
+      name: 'Verdant Slash',
+      desc: 'Nature-infused sword: +1.6x damage and applies Heal-on-Hit (20% of damage) for self.',
+      cooldown: 3,
+      effect: (self, target, rng) => {
+        const base = randRange(self.atkMin, self.atkMax, rng);
+        const dmg = Math.round(base * 1.6);
+        target.hp = Math.max(0, target.hp - dmg);
+        const heal = Math.round(dmg * 0.2);
+        self.hp = Math.min(self.maxHP, self.hp + heal);
+        return { dmg, heal };
+      }
+    }
+  },
+  {
+    id: 'mrudav',
+    name: 'Mrudav Mehta',
+    role: 'Arcane Sorcerer',
+    maxHP: 100,
+    atkMin: 10, atkMax: 30,
+    skill: {
+      name: 'Astral Beam',
+      desc: 'Magic blast: 40% chance to double the damage and push a heavy glow.',
+      cooldown: 4,
+      effect: (self, target, rng) => {
+        let dmg = randRange(self.atkMin, self.atkMax, rng);
+        if (rng() < 0.4) dmg = dmg * 2;
+        dmg = Math.round(dmg);
+        target.hp = Math.max(0, target.hp - dmg);
+        return { dmg, doubled: dmg > (self.atkMax) };
+      }
+    }
+  },
+  {
+    id: 'joel',
+    name: 'Joel Thomas',
+    role: 'Paladin of Dawn',
+    maxHP: 140,
+    atkMin: 12, atkMax: 22,
+    skill: {
+      name: 'Holy Light',
+      desc: 'Heals self for 20 HP (guaranteed) and deals a small radiant strike.',
+      cooldown: 5,
+      effect: (self, target, rng) => {
+        const heal = 20;
+        self.hp = Math.min(self.maxHP, self.hp + heal);
+        const dmg = Math.round(randRange(self.atkMin, self.atkMax, rng) * 0.7);
+        target.hp = Math.max(0, target.hp - dmg);
+        return { dmg, heal };
+      }
+    }
+  },
+  {
+    id: 'rose',
+    name: 'Rose-san',
+    role: 'Dark Healer',
+    maxHP: 110,
+    atkMin: 8, atkMax: 18,
+    skill: {
+      name: 'Blood Petal Curse',
+      desc: 'Deals damage and steals 30% of damage as HP.',
+      cooldown: 4,
+      effect: (self, target, rng) => {
+        const dmg = Math.round(randRange(self.atkMin, self.atkMax, rng) + 6);
+        target.hp = Math.max(0, target.hp - dmg);
+        const steal = Math.round(dmg * 0.3);
+        self.hp = Math.min(self.maxHP, self.hp + steal);
+        return { dmg, steal };
+      }
+    }
+  }
+];
+
+/* Utilities */
+function randRange(a,b,rng=Math.random){
+  return Math.floor(rng() * (b - a + 1)) + a;
+}
+function createRng(seed=Date.now()){
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return function(){
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+/* Battle state */
+let state = {
+  chars: [], // will hold runtime copies
+  round: 0,
+  running: false,
+  paused: false,
+  speed: 1,
+  rng: createRng()
+};
+
+/* DOM references */
+const ground = document.getElementById('ground');
+const logEl = document.getElementById('log');
+const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const speedRange = document.getElementById('speedRange');
+const speedVal = document.getElementById('speedVal');
+const roundDisplay = document.getElementById('roundDisplay');
+const aliveDisplay = document.getElementById('aliveDisplay');
+const logCount = document.getElementById('logCount');
+
+/* Init characters in DOM */
+function initChars(){
+  ground.innerHTML = '';
+  state.chars = CHARS_DEF.map(def => {
+    const c = {
+      id: def.id,
+      name: def.name,
+      role: def.role,
+      maxHP: def.maxHP,
+      hp: def.maxHP,
+      atkMin: def.atkMin,
+      atkMax: def.atkMax,
+      skill: JSON.parse(JSON.stringify(def.skill)),
+      cd: 0,
+      alive: true,
+      elem: null
+    };
+
+    const card = document.createElement('div');
+    card.className = 'char';
+    card.id = 'char_' + c.id;
+    card.style.opacity = '1';
+
+    // portrait
+    const portrait = document.createElement('div');
+    portrait.className = 'portrait';
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = initialsFromName(c.name);
+    portrait.appendChild(avatar);
+
+    // glow
+    const glow = document.createElement('canvas');
+    glow.className = 'glow';
+    glow.width = 120; glow.height = 120;
+    portrait.appendChild(glow);
+
+    // name, role, hp
+    const nameNode = document.createElement('div'); nameNode.className = 'name'; nameNode.textContent = c.name;
+    const roleNode = document.createElement('div'); roleNode.className = 'role'; roleNode.textContent = c.role;
+
+    const hpbarWrap = document.createElement('div'); hpbarWrap.className = 'hpbar';
+    const hpinner = document.createElement('div'); hpinner.className = 'hp';
+    hpbarWrap.appendChild(hpinner);
+    const hptext = document.createElement('div'); hptext.className = 'hp-text'; hptext.textContent = `${c.hp} / ${c.maxHP}`;
+
+    const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = `Skill: ${c.skill.name} (CD ${c.skill.cooldown})`;
+
+    card.appendChild(portrait);
+    card.appendChild(nameNode);
+    card.appendChild(roleNode);
+    card.appendChild(hpbarWrap);
+    card.appendChild(hptext);
+    card.appendChild(badge);
+
+    ground.appendChild(card);
+
+    // position - evenly spaced by CSS flexbox
+    c.elem = {
+      card, portrait, glow, hpinner, hptext, badge
+    };
+
+    drawGlow(glow, c.id);
+
+    return c;
+  });
+  updateAliveDisplay();
+}
+
+/* draw simple glow on canvas for portrait */
+function drawGlow(canvas, id){
+  const ctx = canvas.getContext('2d');
+  const grd = ctx.createRadialGradient(60,60,10,60,60,60);
+  const colors = {
+    an: ['rgba(80,200,130,0.18)','rgba(40,160,110,0.02)'],
+    mrudav: ['rgba(180,140,255,0.16)','rgba(110,80,240,0.03)'],
+    joel: ['rgba(255,230,160,0.14)','rgba(220,180,120,0.02)'],
+    rose: ['rgba(240,110,160,0.16)','rgba(150,60,90,0.02)']
+  };
+  const c = colors[id] || ['rgba(120,120,220,0.12)','rgba(70,70,140,0.02)'];
+  grd.addColorStop(0,c[0]); grd.addColorStop(1,c[1]);
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,0,canvas.width, canvas.height);
+}
+
+/* Helpers */
+function initialsFromName(name){
+  return name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+}
+
+/* Logging */
+let logIndex = 0;
+function pushLog(html){
+  const p = document.createElement('p');
+  p.innerHTML = `<strong>#${++logIndex}.</strong> ${html}`;
+  logEl.prepend(p); // newest on top
+  logCount.textContent = logIndex;
+  // Keep log to 200 entries
+  while (logEl.children.length > 200) logEl.lastChild.remove();
+}
+
+/* update HP visuals */
+function updateHpVisual(c){
+  const pct = Math.max(0, c.hp) / c.maxHP;
+  c.elem.hpinner.style.width = (pct*100) + '%';
+  c.elem.hptext.textContent = `${Math.max(0,c.hp)} / ${c.maxHP}`;
+  if (pct > 0.66){
+    c.elem.hpinner.style.background = 'linear-gradient(90deg,var(--good), #4ee1ff 60%)';
+  } else if (pct > 0.33){
+    c.elem.hpinner.style.background = 'linear-gradient(90deg,#ffd36b,#ffb36b 60%)';
+  } else {
+    c.elem.hpinner.style.background = 'linear-gradient(90deg,var(--danger), #ff9a9a 60%)';
+  }
+  // dim if dead
+  c.elem.card.style.opacity = c.alive ? '1' : '0.45';
+}
+
+/* find alive opponents */
+function aliveList(excludeId){
+  return state.chars.filter(x => x.alive && x.id !== excludeId);
+}
+
+/* main turn sequence */
+let animQueue = Promise.resolve();
+function nextTurn(){
+  if (!state.running || state.paused) return;
+  // check alive count
+  const alive = state.chars.filter(c => c.alive);
+  if (alive.length <= 1){
+    endBattle(alive[0] || null);
+    return;
+  }
+
+  state.round++;
+  roundDisplay.textContent = state.round;
+
+  // each alive char acts in order (randomized each round)
+  const order = shuffleArray(alive.slice(), state.rng());
+  let delay = 0;
+  order.forEach((actor, idx) => {
+    animQueue = animQueue.then(() => performAction(actor)).then(() => sleep(500 / state.speed));
+  });
+
+  // after all, schedule next round
+  animQueue.then(() => {
+    if (state.running && !state.paused) {
+      // small break between rounds
+      setTimeout(nextTurn, Math.max(200, 900 / state.speed));
+    }
+  });
+}
+
+/* perform action for one actor */
+function performAction(actor){
+  return new Promise(resolve => {
+    // recalc alive
+    if (!actor.alive) return resolve();
+
+    // decrease cooldown markers
+    if (actor.cd > 0) actor.cd--;
+
+    // choose target
+    const opponents = aliveList(actor.id);
+    if (opponents.length === 0) return resolve();
+
+    // choose: skill if off-cooldown with some probability, else basic attack
+    const useSkill = (actor.cd <= 0) && (state.rng() < 0.65); // 65% prefer skill
+    const target = opponents[Math.floor(state.rng() * opponents.length)];
+
+    // animate move-in
+    animateApproach(actor, target);
+
+    // after approach timing, resolve damage
+    setTimeout(() => {
+      if (!actor.alive || !target.alive) { resolve(); return; }
+
+      if (useSkill) {
+        const res = actor.skill.effect(actor, target, state.rng);
+        actor.cd = actor.skill.cooldown;
+        // log and show big skill effect/animation
+        showSkillEffect(actor, target, actor.skill.name, res);
+        pushLog(`<span style="color:#9bdcff">${actor.name}</span> used <strong>${actor.skill.name}</strong> on <span style="color:#ffccdd">${target.name}</span>. ${skillResultText(res)}`);
+      } else {
+        const dmg = randRange(actor.atkMin, actor.atkMax, state.rng);
+        target.hp = Math.max(0, target.hp - dmg);
+        showAttackEffect(actor, target, dmg);
+        pushLog(`<span style="color:#9bdcff">${actor.name}</span> attacked <span style="color:#ffccdd">${target.name}</span> for <strong>${dmg}</strong> damage.`);
+      }
+
+      // update visuals and death checks
+      updateHpVisual(target);
+      updateHpVisual(actor);
+
+      // if target died
+      if (target.hp <= 0 && target.alive){
+        target.alive = false;
+        pushLog(`<span style="color:#ff9a9a">${target.name}</span> has fallen...`);
+        // fade target
+        target.elem.card.style.transition = 'transform .6s ease, opacity .6s linear';
+        target.elem.card.style.transform = 'translateY(16px) scale(.96) rotate(-2deg)';
+        target.elem.card.style.opacity = '0.35';
+      }
+
+      updateAliveDisplay();
+
+      // small hit pause
+      setTimeout(resolve, Math.max(300, 520 / state.speed));
+    }, 420 / state.speed);
+  });
+}
+
+/* UI helpers */
+function updateAliveDisplay(){
+  const alive = state.chars.filter(c => c.alive).length;
+  aliveDisplay.textContent = alive;
+}
+function skillResultText(res){
+  if (!res) return '';
+  const parts = [];
+  if (res.dmg !== undefined) parts.push(`dealt <strong>${res.dmg}</strong> dmg`);
+  if (res.heal !== undefined) parts.push(`healed <strong>${res.heal}</strong>`);
+  if (res.steal !== undefined) parts.push(`stole <strong>${res.steal}</strong> HP`);
+  if (res.doubled) parts.push(`(doubled!)`);
+  return parts.length ? ('It ' + parts.join(' and ') + '.') : '';
+}
+
+/* animations for approach + attack */
+function animateApproach(actor, target){
+  const ac = actor.elem.card;
+  const tc = target.elem.card;
+  // quick scale forward then back
+  ac.style.transition = 'transform 220ms ease';
+  ac.style.transform = 'translateY(-8px) scale(1.03)';
+  setTimeout(()=> { ac.style.transform = ''; }, 300 / state.speed);
+}
+
+/* attack visual: small spark */
+function showAttackEffect(actor, target, dmg){
+  const rectA = actor.elem.card.getBoundingClientRect();
+  const rectT = target.elem.card.getBoundingClientRect();
+  const containerRect = ground.getBoundingClientRect();
+
+  // create spark at target
+  const spark = document.createElement('div');
+  spark.className = 'hit-spark attack-anim';
+  const sx = (rectT.left + rectT.width/2) - containerRect.left;
+  const sy = (rectT.top + rectT.height/2) - containerRect.top - 20;
+  spark.style.left = sx + 'px';
+  spark.style.top = sy + 'px';
+  spark.style.background = 'rgba(255,230,200,0.92)';
+  ground.appendChild(spark);
+  setTimeout(()=> spark.remove(), 520);
+
+  // small particle effect on target (red flash)
+  flashElement(target.elem.card, 'rgba(255,120,120,0.14)');
+}
+
+/* big skill effect */
+function showSkillEffect(actor, target, skillName, res){
+  // draw different effects for each skill type
+  const tc = target.elem.card;
+  const rectT = tc.getBoundingClientRect();
+  const containerRect = ground.getBoundingClientRect();
+  const cx = (rectT.left + rectT.width/2) - containerRect.left;
+  const cy = (rectT.top + rectT.height/2) - containerRect.top - 20;
+
+  const big = document.createElement('div');
+  big.className = 'big-skill attack-anim';
+  big.style.left = (cx - 80) + 'px';
+  big.style.top = (cy - 80) + 'px';
+  big.style.width = '160px';
+  big.style.height = '160px';
+  big.style.opacity = '0';
+  big.style.pointerEvents = 'none';
+
+  // color by actor id
+  const colors = {
+    an: 'linear-gradient(45deg, rgba(120,220,140,0.18), rgba(30,120,70,0.06))',
+    mrudav: 'radial-gradient(circle, rgba(200,160,255,0.24), rgba(40,10,90,0.02))',
+    joel: 'linear-gradient(45deg, rgba(255,235,160,0.22), rgba(200,150,80,0.02))',
+    rose: 'radial-gradient(circle, rgba(255,130,160,0.18), rgba(120,30,60,0.02))'
+  };
+  big.style.background = colors[actor.id] || 'rgba(255,255,255,0.10)';
+  big.style.borderRadius = '20px';
+  big.style.boxShadow = '0 0 40px 18px rgba(255,255,255,0.04), inset 0 0 40px rgba(255,255,255,0.02)';
+  big.style.transform = 'scale(.4) rotate(-8deg)';
+  ground.appendChild(big);
+
+  // animate
+  requestAnimationFrame(()=> {
+    big.style.transition = 'transform 560ms cubic-bezier(.2,.9,.2,1), opacity 520ms ease';
+    big.style.opacity = '1';
+    big.style.transform = 'scale(1) rotate(0deg)';
+  });
+  // text pop on target
+  const txt = document.createElement('div');
+  txt.className = 'attack-anim';
+  txt.style.left = cx + 'px';
+  txt.style.top = (cy - 80) + 'px';
+  txt.style.transform = 'translateX(-50%)';
+  txt.style.color = '#fff';
+  txt.style.fontWeight = '700';
+  txt.style.textShadow = '0 6px 18px rgba(0,0,0,0.7)';
+  txt.style.zIndex = 40;
+  txt.innerHTML = skillName;
+  ground.appendChild(txt);
+  // fade out
+  setTimeout(()=> { big.style.opacity = '0'; txt.style.opacity = '0'; }, 800 / state.speed);
+  setTimeout(()=> { big.remove(); txt.remove(); }, 1400 / state.speed);
+  // flash target
+  flashElement(tc, 'rgba(255,255,255,0.06)');
+}
+
+/* flashing effect on element */
+function flashElement(el, color){
+  const orig = el.style.boxShadow;
+  el.style.transition = 'box-shadow 160ms ease';
+  el.style.boxShadow = `0 0 28px 6px ${color}`;
+  setTimeout(()=> { el.style.boxShadow = orig || ''; }, 300);
+}
+
+/* shuffle array deterministic-ish using rng */
+function shuffleArray(arr, r){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(r * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* sleep util */
+function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+/* battle start / pause / reset */
+function startBattle(){
+  if (state.running) return;
+  state.running = true;
+  state.paused = false;
+  startBtn.textContent = 'Running...';
+  startBtn.disabled = true;
+  pauseBtn.textContent = 'Pause';
+  pushLog('<em>The battle begins under the blood moon...</em>');
+  nextTurn();
+}
+
+function pauseBattle(){
+  state.paused = !state.paused;
+  pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
+  if (!state.paused && state.running){
+    // resume next turn after small delay
+    setTimeout(nextTurn, 300);
+  }
+}
+
+function resetBattle(){
+  state.running = false;
+  state.paused = false;
+  state.round = 0;
+  state.rng = createRng(Date.now());
+  logIndex = 0;
+  logEl.innerHTML = '';
+  startBtn.disabled = false;
+  startBtn.textContent = 'Start Battle';
+  pauseBtn.textContent = 'Pause';
+  animQueue = Promise.resolve();
+  initChars();
+  roundDisplay.textContent = '0';
+  logCount.textContent = '0';
+}
+
+/* end battle */
+function endBattle(winner){
+  state.running = false;
+  startBtn.disabled = false;
+  startBtn.textContent = 'Start Battle';
+  if (!winner){
+    pushLog('<strong>It was a strange draw — the forest devoured them all.</strong>');
+    showOverlay('No one remains... Darkness wins.');
+  } else {
+    pushLog(`<strong>${winner.name}</strong> stands victorious!`);
+    showWinnerAnimation(winner);
+  }
+}
+
+/* overlay winner */
+function showOverlay(text){
+  const existing = document.querySelector('.overlay');
+  if (existing) existing.remove();
+  const o = document.createElement('div'); o.className = 'overlay';
+  o.innerHTML = `<div style="max-width:540px"><div style="font-size:34px;margin-bottom:12px">${text}</div><div style="font-size:14px;color:var(--muted)">The Darkness of Llinger whispers as the moon fades...</div></div>`;
+  document.getElementById('scene').appendChild(o);
+  setTimeout(()=> { o.style.opacity = '0'; setTimeout(()=> o.remove(), 1800); }, 4000);
+}
+
+/* winner animation */
+function showWinnerAnimation(winner){
+  // big glowing burst around winner portrait
+  const elem = winner.elem.card;
+  const burst = document.createElement('div');
+  burst.className = 'attack-anim';
+  const r = elem.getBoundingClientRect();
+  const g = ground.getBoundingClientRect();
+  burst.style.left = (r.left + r.width/2 - g.left - 140) + 'px';
+  burst.style.top = (r.top + r.height/2 - g.top - 140) + 'px';
+  burst.style.width = '280px';
+  burst.style.height = '280px';
+  burst.style.borderRadius = '20px';
+  burst.style.background = 'radial-gradient(circle, rgba(255,255,220,0.16), rgba(255,200,120,0.04))';
+  burst.style.boxShadow = '0 0 120px 40px rgba(255,230,160,0.16)';
+  burst.style.opacity = '0';
+  ground.appendChild(burst);
+  setTimeout(()=> { burst.style.transition = 'opacity 480ms ease, transform 500ms cubic-bezier(.2,.9,.2,1)'; burst.style.opacity = '1'; burst.style.transform = 'scale(1.02)'; }, 40);
+  setTimeout(()=> { burst.style.opacity = '0'; }, 2200);
+  setTimeout(()=> { burst.remove(); showOverlay(`${winner.name} is victorious!`) }, 2600);
+}
+
+/* wire buttons */
+startBtn.addEventListener('click', ()=> startBattle());
+pauseBtn.addEventListener('click', ()=> pauseBattle());
+resetBtn.addEventListener('click', ()=> resetBattle());
+speedRange.addEventListener('input', (e)=>{
+  state.speed = parseFloat(e.target.value);
+  speedVal.textContent = `${state.speed}x`;
+});
+
+/* quick random seed for reproducibility if needed */
+/* initialize */
+resetBattle();
+
+/* For initial UI experience: simulate small idle breathing animation */
+(function idleBreathe(){
+  state.chars.forEach((c, idx) => {
+    if (!c || !c.elem) return;
+    const s = 1 + (Math.sin(Date.now()/900 + idx*1.7) * 0.02);
+    c.elem.card.style.transform = `scale(${s})`;
+  });
+  requestAnimationFrame(idleBreathe);
+})();
+</script>
+</body>
+</html>
